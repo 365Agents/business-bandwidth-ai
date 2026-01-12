@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-11)
 ## Current Position
 
 Phase: 2 of 7 (Lead Capture)
-Plan: Not started
-Status: Ready to plan Phase 2
-Last activity: 2026-01-12 — Completed Phase 1 (Foundation)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-12 — Completed 02-01-PLAN.md
 
-Progress: ██░░░░░░░░ 12% (2/17 plans)
+Progress: ██░░░░░░░░ 18% (3/17 plans)
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: ██░░░░░░░░ 12% (2/17 plans)
 | 1. Foundation | 2/2 | ~25 min | ~12 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (~10 min), 01-02 (~15 min)
+- Last 5 plans: 01-01 (~10 min), 01-02 (~15 min), 02-01 (~8 min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -45,6 +45,8 @@ Recent decisions affecting current work:
 - Next.js 16 with App Router
 - shadcn/ui for component library
 - Google-style address input on landing page
+- Single-page quote form (not multi-step wizard)
+- Server-side validation with zod schema
 
 ### Deferred Issues
 
@@ -61,5 +63,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-12
-Stopped at: Phase 1 complete, ready for Phase 2 (Lead Capture)
+Stopped at: Completed 02-01-PLAN.md, ready for 02-02
 Resume file: None

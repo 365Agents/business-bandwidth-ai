@@ -43,7 +43,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Lead capture form and validation
+- [x] 02-01: Lead capture form and validation
 - [ ] 02-02: Lead storage and basic management
 
 ### Phase 3: Address Verification
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-01-12 |
-| 2. Lead Capture | 0/2 | Not started | - |
+| 2. Lead Capture | 1/2 | In progress | - |
 | 3. Address Verification | 0/2 | Not started | - |
 | 4. Momentum API | 0/3 | Not started | - |
 | 5. Real-time Status | 0/2 | Not started | - |
