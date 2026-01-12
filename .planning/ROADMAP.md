@@ -33,7 +33,7 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Project scaffolding and database setup
+- [x] 01-01: Project scaffolding and database setup
 - [ ] 01-02: Base UI components and layout
 
 ### Phase 2: Lead Capture
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/2 | Not started | - |
+| 1. Foundation | 1/2 | In progress | - |
 | 2. Lead Capture | 0/2 | Not started | - |
 | 3. Address Verification | 0/2 | Not started | - |
 | 4. Momentum API | 0/3 | Not started | - |
