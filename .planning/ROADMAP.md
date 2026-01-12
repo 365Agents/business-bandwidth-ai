@@ -17,7 +17,7 @@ None
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Foundation** - Project setup, Next.js app, database, UI framework
-- [ ] **Phase 2: Lead Capture** - Customer info forms, validation, lead storage
+- [x] **Phase 2: Lead Capture** - Customer info forms, validation, lead storage
 - [ ] **Phase 3: Address Verification** - Google Maps integration, business-only filtering
 - [ ] **Phase 4: Momentum API** - Authentication, quote submission, result polling
 - [ ] **Phase 5: Real-time Status** - WebSocket updates during quote processing
@@ -44,7 +44,7 @@ Plans:
 
 Plans:
 - [x] 02-01: Lead capture form and validation
-- [ ] 02-02: Lead storage and basic management
+- [x] 02-02: Lead storage and basic management
 
 ### Phase 3: Address Verification
 **Goal**: Google Maps address autocomplete with business-only filtering
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-01-12 |
-| 2. Lead Capture | 1/2 | In progress | - |
+| 2. Lead Capture | 2/2 | Complete | 2026-01-12 |
 | 3. Address Verification | 0/2 | Not started | - |
 | 4. Momentum API | 0/3 | Not started | - |
 | 5. Real-time Status | 0/2 | Not started | - |
