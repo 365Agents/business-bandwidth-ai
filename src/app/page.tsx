@@ -1,28 +1,56 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 export default function HomePage() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="container py-24 md:py-32 space-y-8">
-        <div className="max-w-3xl mx-auto text-center space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            Get Instant Quotes for{" "}
-            <span className="text-primary">Business Internet</span>
+      {/* Hero Section - Google-style */}
+      <section className="container py-24 md:py-32">
+        <div className="max-w-2xl mx-auto text-center space-y-8">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Get Business Internet Quotes{" "}
+            <span className="text-primary">Anywhere on Earth</span>
           </h1>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             Compare pricing from 200+ carriers worldwide. Get quotes in 2-3 minutes.
             Business addresses only.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button size="lg" asChild>
-              <Link href="/quote">Get Your Quote</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/dashboard">View Dashboard</Link>
-            </Button>
+          
+          {/* Address Input - Google-style */}
+          <div className="max-w-xl mx-auto pt-4">
+            <Link href="/quote" className="block">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
+                <Input
+                  type="text"
+                  placeholder="Enter your business address..."
+                  className="h-14 pl-12 pr-4 text-lg rounded-full shadow-lg border-2 cursor-pointer hover:border-primary hover:shadow-xl transition-all"
+                  readOnly
+                />
+              </div>
+            </Link>
           </div>
         </div>
       </section>
