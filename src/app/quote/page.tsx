@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Form,
   FormControl,
@@ -24,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { GoogleAddressAutocomplete, type ParsedAddress } from "@/components/google-address-autocomplete"
 
 import { quoteFormSchema, type QuoteFormValues } from "@/lib/validations/quote"
 import { submitQuoteRequest } from "./actions"
@@ -47,8 +49,18 @@ export default function QuotePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAddressVerified, setIsAddressVerified] = useState(false)
 
-  const addressFromHome = searchParams.get("address") || ""
+  // Read all address query params
+  const streetFromParams = searchParams.get("street") || ""
+  const cityFromParams = searchParams.get("city") || ""
+  const stateFromParams = searchParams.get("state") || ""
+  const zipFromParams = searchParams.get("zip") || ""
+  // Legacy support for old single-param format
+  const legacyAddress = searchParams.get("address") || ""
+
+  // Determine initial street address
+  const initialStreet = streetFromParams || legacyAddress
 
   const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteFormSchema),
@@ -57,14 +69,36 @@ export default function QuotePage() {
       email: "",
       phone: "",
       company: "",
-      streetAddress: addressFromHome,
-      city: "",
-      state: "",
-      zipCode: "",
+      streetAddress: initialStreet,
+      city: cityFromParams,
+      state: stateFromParams,
+      zipCode: zipFromParams,
       speed: "",
       term: "",
     },
   })
+
+  // Set verified badge if came from Google autocomplete
+  useEffect(() => {
+    if (streetFromParams && cityFromParams && stateFromParams) {
+      setIsAddressVerified(true)
+    }
+  }, [streetFromParams, cityFromParams, stateFromParams])
+
+  function handlePlaceSelect(parsedAddress: ParsedAddress) {
+    // Auto-fill all address fields when a place is selected
+    form.setValue("streetAddress", parsedAddress.streetAddress, { shouldValidate: true })
+    form.setValue("city", parsedAddress.city, { shouldValidate: true })
+    form.setValue("state", parsedAddress.state, { shouldValidate: true })
+    form.setValue("zipCode", parsedAddress.zipCode, { shouldValidate: true })
+    setIsAddressVerified(true)
+  }
+
+  function handleStreetChange(value: string) {
+    form.setValue("streetAddress", value)
+    // If user manually types, remove verified status
+    setIsAddressVerified(false)
+  }
 
   async function onSubmit(data: QuoteFormValues) {
     setIsSubmitting(true)
@@ -162,7 +196,25 @@ export default function QuotePage() {
 
               {/* Location */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Service Location</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">Service Location</h3>
+                  {isAddressVerified && (
+                    <Badge variant="secondary" className="text-green-600 bg-green-100">
+                      <svg
+                        className="w-3 h-3 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Verified
+                    </Badge>
+                  )}
+                </div>
                 <FormField
                   control={form.control}
                   name="streetAddress"
@@ -170,7 +222,12 @@ export default function QuotePage() {
                     <FormItem>
                       <FormLabel>Street Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Main Street" {...field} />
+                        <GoogleAddressAutocomplete
+                          value={field.value}
+                          onChange={handleStreetChange}
+                          onPlaceSelect={handlePlaceSelect}
+                          placeholder="Start typing to search..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

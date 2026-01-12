@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
+import { GoogleMapsProvider } from "@/lib/google-maps"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -30,10 +31,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <Toaster />
+        <GoogleMapsProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <Toaster />
+        </GoogleMapsProvider>
       </body>
     </html>
   )

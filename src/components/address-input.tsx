@@ -2,14 +2,27 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Input } from "@/components/ui/input"
+import { GoogleAddressAutocomplete, type ParsedAddress } from "@/components/google-address-autocomplete"
 
 export function AddressInput() {
   const router = useRouter()
   const [address, setAddress] = useState("")
 
+  function handlePlaceSelect(parsedAddress: ParsedAddress) {
+    // Redirect to quote page with all address components as query params
+    const params = new URLSearchParams()
+    if (parsedAddress.streetAddress) params.set("street", parsedAddress.streetAddress)
+    if (parsedAddress.city) params.set("city", parsedAddress.city)
+    if (parsedAddress.state) params.set("state", parsedAddress.state)
+    if (parsedAddress.zipCode) params.set("zip", parsedAddress.zipCode)
+    if (parsedAddress.formattedAddress) params.set("formatted", parsedAddress.formattedAddress)
+
+    router.push(`/quote?${params.toString()}`)
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // Fallback for manual entry (when autocomplete not used)
     const encodedAddress = encodeURIComponent(address.trim())
     router.push(encodedAddress ? `/quote?address=${encodedAddress}` : "/quote")
   }
@@ -17,7 +30,7 @@ export function AddressInput() {
   return (
     <form onSubmit={handleSubmit}>
       <div className="relative group">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
           <svg
             className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors"
             fill="none"
@@ -38,12 +51,12 @@ export function AddressInput() {
             />
           </svg>
         </div>
-        <Input
-          type="text"
+        <GoogleAddressAutocomplete
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onChange={setAddress}
+          onPlaceSelect={handlePlaceSelect}
           placeholder="Enter your business address..."
-          className="h-14 pl-12 pr-4 text-lg rounded-full shadow-lg border-2 hover:border-primary hover:shadow-xl transition-all focus-visible:ring-primary"
+          inputClassName="h-14 pl-12 pr-4 text-lg rounded-full shadow-lg border-2 hover:border-primary hover:shadow-xl transition-all focus-visible:ring-primary"
         />
       </div>
     </form>
