@@ -1,7 +1,5 @@
-import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { AddressInput } from "@/components/address-input"
 
 export default function HomePage() {
   return (
@@ -17,40 +15,10 @@ export default function HomePage() {
             Compare pricing from 200+ carriers worldwide. Get quotes in 2-3 minutes.
             Business addresses only.
           </p>
-          
+
           {/* Address Input - Google-style */}
           <div className="max-w-xl mx-auto pt-4">
-            <Link href="/quote" className="block">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </div>
-                <Input
-                  type="text"
-                  placeholder="Enter your business address..."
-                  className="h-14 pl-12 pr-4 text-lg rounded-full shadow-lg border-2 cursor-pointer hover:border-primary hover:shadow-xl transition-all"
-                  readOnly
-                />
-              </div>
-            </Link>
+            <AddressInput />
           </div>
         </div>
       </section>
