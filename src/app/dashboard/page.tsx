@@ -13,7 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getDashboardData, refreshProcessingQuotes } from "./actions"
+import { getDashboardData, refreshProcessingQuotes, fetchExchangeRates } from "./actions"
+import {
+  CURRENCIES,
+  CURRENCY_INFO,
+  formatCurrency,
+  convertCurrency,
+  formatRate,
+  type Currency,
+} from "@/lib/currency"
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>
 type Quote = DashboardData["recentQuotes"][number]
@@ -56,24 +64,84 @@ function formatSpeed(speed: string) {
   return `${speedNum} Mbps`
 }
 
-function formatCurrency(amount: number | null) {
-  if (!amount) return "—"
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+// Currency selector dropdown
+function CurrencySelector({
+  value,
+  onChange,
+  rates,
+}: {
+  value: Currency
+  onChange: (currency: Currency) => void
+  rates: Record<Currency, number> | null
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen(!isOpen)
+        }}
+        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-[#1a1a24] border border-white/10 hover:border-white/20 text-[#808090] hover:text-white transition-colors"
+      >
+        {value}
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsOpen(false)
+            }}
+          />
+          <div className="absolute right-0 mt-1 z-20 bg-[#12121a] border border-white/10 rounded-lg shadow-lg overflow-hidden min-w-[140px]">
+            {CURRENCIES.map((currency) => (
+              <button
+                key={currency}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onChange(currency)
+                  setIsOpen(false)
+                }}
+                className={`w-full px-3 py-2 text-left text-sm hover:bg-[#1a1a24] transition-colors flex items-center justify-between ${
+                  value === currency ? "text-[#0066ff]" : "text-white"
+                }`}
+              >
+                <span>{CURRENCY_INFO[currency].name}</span>
+                <span className="text-[#808090] text-xs">{CURRENCY_INFO[currency].symbol}</span>
+              </button>
+            ))}
+            {rates && value !== "USD" && (
+              <div className="px-3 py-2 text-xs text-[#505060] border-t border-white/5">
+                {formatRate("USD", value, rates)}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [rates, setRates] = useState<Record<Currency, number> | null>(null)
+  const [quoteCurrencies, setQuoteCurrencies] = useState<Record<string, Currency>>({})
 
   const loadData = useCallback(async () => {
-    const result = await getDashboardData()
+    const [result, exchangeRates] = await Promise.all([
+      getDashboardData(),
+      fetchExchangeRates(),
+    ])
     setData(result)
+    setRates(exchangeRates)
     setIsLoading(false)
   }, [])
 
@@ -103,6 +171,23 @@ export default function DashboardPage() {
     await refreshProcessingQuotes()
     await loadData()
     setIsRefreshing(false)
+  }
+
+  function getQuoteCurrency(quoteId: string): Currency {
+    return quoteCurrencies[quoteId] || "USD"
+  }
+
+  function setQuoteCurrency(quoteId: string, currency: Currency) {
+    setQuoteCurrencies((prev) => ({ ...prev, [quoteId]: currency }))
+  }
+
+  function getDisplayPrice(quote: Quote): { amount: number; currency: Currency } | null {
+    if (!quote.mrc) return null
+    const currency = getQuoteCurrency(quote.id)
+    if (currency === "USD" || !rates) {
+      return { amount: quote.mrc, currency: "USD" }
+    }
+    return { amount: convertCurrency(quote.mrc, currency, rates), currency }
   }
 
   if (isLoading || !data) {
@@ -233,47 +318,59 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentQuotes.map((quote) => (
-                  <TableRow
-                    key={quote.id}
-                    className="border-white/5 hover:bg-[#12121a] cursor-pointer"
-                    onClick={() => window.location.href = `/dashboard/quotes/${quote.id}`}
-                  >
-                    <TableCell className="font-medium text-white">
-                      {quote.lead.company}
-                    </TableCell>
-                    <TableCell className="text-[#b0b0c0]">
-                      {quote.city}, {quote.state}
-                    </TableCell>
-                    <TableCell className="text-[#b0b0c0]">{formatSpeed(quote.speed)}</TableCell>
-                    <TableCell>
-                      {quote.mrc ? (
-                        <span className="text-[#00ff88] font-medium">
-                          {formatCurrency(quote.mrc)}/mo
-                        </span>
-                      ) : quote.status === "processing" ? (
-                        <span className="text-[#0066ff] text-sm">Searching...</span>
-                      ) : (
-                        <span className="text-[#505060]">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(quote.status)}</TableCell>
-                    <TableCell className="text-[#808090]">{formatDate(quote.createdAt)}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-[#0066ff] hover:text-[#0066ff] hover:bg-[#0066ff]/10"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          window.location.href = `/dashboard/quotes/${quote.id}`
-                        }}
-                      >
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {recentQuotes.map((quote) => {
+                  const price = getDisplayPrice(quote)
+                  const currency = getQuoteCurrency(quote.id)
+
+                  return (
+                    <TableRow
+                      key={quote.id}
+                      className="border-white/5 hover:bg-[#12121a] cursor-pointer"
+                      onClick={() => window.location.href = `/dashboard/quotes/${quote.id}`}
+                    >
+                      <TableCell className="font-medium text-white">
+                        {quote.lead.company}
+                      </TableCell>
+                      <TableCell className="text-[#b0b0c0]">
+                        {quote.city}, {quote.state}
+                      </TableCell>
+                      <TableCell className="text-[#b0b0c0]">{formatSpeed(quote.speed)}</TableCell>
+                      <TableCell>
+                        {price ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#00ff88] font-medium">
+                              {formatCurrency(price.amount, price.currency, { decimals: 0 })}/mo
+                            </span>
+                            <CurrencySelector
+                              value={currency}
+                              onChange={(c) => setQuoteCurrency(quote.id, c)}
+                              rates={rates}
+                            />
+                          </div>
+                        ) : quote.status === "processing" ? (
+                          <span className="text-[#0066ff] text-sm">Searching...</span>
+                        ) : (
+                          <span className="text-[#505060]">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(quote.status)}</TableCell>
+                      <TableCell className="text-[#808090]">{formatDate(quote.createdAt)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#0066ff] hover:text-[#0066ff] hover:bg-[#0066ff]/10"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.location.href = `/dashboard/quotes/${quote.id}`
+                          }}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

@@ -2,6 +2,11 @@
 
 import { getDb } from "@/lib/db"
 import { checkQuoteStatus } from "@/lib/momentum-api"
+import { getExchangeRates, type Currency } from "@/lib/currency"
+
+export async function fetchExchangeRates(): Promise<Record<Currency, number>> {
+  return getExchangeRates()
+}
 
 export async function getDashboardData() {
   const db = await getDb()
