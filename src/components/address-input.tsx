@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { GoogleAddressAutocomplete, type ParsedAddress } from "@/components/google-address-autocomplete"
+import { GoogleAddressAutocomplete, type ParsedAddress, type SearchMode } from "@/components/google-address-autocomplete"
 
 export function AddressInput() {
   const router = useRouter()
   const [address, setAddress] = useState("")
   const [residentialWarning, setResidentialWarning] = useState(false)
   const [isGeocoding, setIsGeocoding] = useState(false)
+  const [searchMode, setSearchMode] = useState<SearchMode>("address")
   const lastParsedAddressRef = useRef<ParsedAddress | null>(null)
 
   const navigateToQuote = useCallback((parsedAddress: ParsedAddress) => {
@@ -199,10 +200,24 @@ export function AddressInput() {
           <GoogleAddressAutocomplete
             onAddressChange={setAddress}
             onPlaceSelect={handlePlaceSelect}
-            placeholder="Enter your business address..."
+            placeholder={searchMode === "establishment" ? "Search by business name..." : "Enter your business address..."}
             inputClassName="h-16 pl-14 pr-6 text-lg rounded-2xl bg-[#1a1a28] border border-white/10 text-white placeholder:text-[#505060] hover:border-[#0066ff]/50 focus:border-[#0066ff] focus:ring-[3px] focus:ring-[#0066ff]/30 shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(0,102,255,0.2)] transition-all"
             disabled={isGeocoding}
+            searchMode={searchMode}
+            onSearchModeChange={setSearchMode}
           />
+        </div>
+        {/* Search mode toggle */}
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={() => setSearchMode(searchMode === "address" ? "establishment" : "address")}
+            className="text-sm text-[#0066ff] hover:text-[#0066ff]/80 transition-colors"
+          >
+            {searchMode === "address"
+              ? "Can't find your address? Search by business name →"
+              : "← Search by street address instead"}
+          </button>
         </div>
       </form>
 
