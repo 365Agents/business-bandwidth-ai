@@ -1,6 +1,10 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -9,33 +13,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getLeadCount } from "@/lib/queries/leads"
-import { getQuoteCount, getPendingQuoteCount, getRecentQuotes } from "@/lib/queries/quotes"
+import { getDashboardData, refreshProcessingQuotes } from "./actions"
+
+type DashboardData = Awaited<ReturnType<typeof getDashboardData>>
+type Quote = DashboardData["recentQuotes"][number]
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date)
 }
 
 function getStatusBadge(status: string) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    pending: "secondary",
-    processing: "default",
-    complete: "default",
-    failed: "destructive",
+  const styles: Record<string, string> = {
+    pending: "bg-[#ff9900]/10 text-[#ff9900] border-[#ff9900]/20",
+    processing: "bg-[#0066ff]/10 text-[#0066ff] border-[#0066ff]/20",
+    complete: "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20",
+    accepted: "bg-[#00d4ff]/10 text-[#00d4ff] border-[#00d4ff]/20",
+    failed: "bg-[#ff4466]/10 text-[#ff4466] border-[#ff4466]/20",
   }
-  const colors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-    processing: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-    complete: "bg-green-100 text-green-800 hover:bg-green-100",
-    failed: "bg-red-100 text-red-800 hover:bg-red-100",
+  const labels: Record<string, string> = {
+    accepted: "Order Placed",
   }
   return (
-    <Badge variant={variants[status] || "secondary"} className={colors[status] || ""}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+    <Badge variant="outline" className={styles[status] || ""}>
+      {status === "processing" && (
+        <span className="w-2 h-2 bg-[#0066ff] rounded-full mr-2 animate-pulse" />
+      )}
+      {labels[status] || status.charAt(0).toUpperCase() + status.slice(1)}
     </Badge>
   )
 }
@@ -48,64 +56,149 @@ function formatSpeed(speed: string) {
   return `${speedNum} Mbps`
 }
 
-export default async function DashboardPage() {
-  const [leadCount, quoteCount, pendingCount, recentQuotes] = await Promise.all([
-    getLeadCount(),
-    getQuoteCount(),
-    getPendingQuoteCount(),
-    getRecentQuotes(10),
-  ])
+function formatCurrency(amount: number | null) {
+  if (!amount) return "—"
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const loadData = useCallback(async () => {
+    const result = await getDashboardData()
+    setData(result)
+    setIsLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Auto-refresh processing quotes every 30 seconds
+  useEffect(() => {
+    if (!data) return
+
+    const hasProcessing = data.recentQuotes.some(q => q.status === "processing")
+    if (!hasProcessing) return
+
+    const interval = setInterval(async () => {
+      const updated = await refreshProcessingQuotes()
+      if (updated) {
+        loadData()
+      }
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [data, loadData])
+
+  async function handleRefresh() {
+    setIsRefreshing(true)
+    await refreshProcessingQuotes()
+    await loadData()
+    setIsRefreshing(false)
+  }
+
+  if (isLoading || !data) {
+    return (
+      <div className="container py-16">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-[#0066ff] border-t-transparent rounded-full" />
+        </div>
+      </div>
+    )
+  }
+
+  const { leadCount, quoteCount, processingCount, recentQuotes } = data
 
   return (
     <div className="container py-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Manage your leads and quotes</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-semibold">Dashboard</h1>
+          <p className="text-[#808090]">Manage your leads and quotes</p>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="border-white/10"
+          >
+            {isRefreshing ? (
+              <>
+                <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </>
+            )}
+          </Button>
+          <Button asChild variant="outline" className="border-white/20 hover:border-white/30">
+            <Link href="/dashboard/bulk">Bulk Upload</Link>
+          </Button>
+          <Button asChild className="bg-electric-gradient shadow-electric">
+            <Link href="/quote">New Quote</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="bg-[#0a0a0f] border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Total Leads</CardDescription>
-            <CardTitle className="text-4xl">{leadCount}</CardTitle>
+            <CardDescription className="text-[#808090]">Total Leads</CardDescription>
+            <CardTitle className="font-display text-4xl text-white">{leadCount}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Leads captured</p>
+            <p className="text-xs text-[#505060]">Leads captured</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#0a0a0f] border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Quotes Generated</CardDescription>
-            <CardTitle className="text-4xl">{quoteCount}</CardTitle>
+            <CardDescription className="text-[#808090]">Quotes Generated</CardDescription>
+            <CardTitle className="font-display text-4xl text-white">{quoteCount}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Total quote requests</p>
+            <p className="text-xs text-[#505060]">Total quote requests</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#0a0a0f] border-white/10">
           <CardHeader className="pb-2">
-            <CardDescription>Pending</CardDescription>
-            <CardTitle className="text-4xl">{pendingCount}</CardTitle>
+            <CardDescription className="text-[#808090]">Processing</CardDescription>
+            <CardTitle className="font-display text-4xl text-[#0066ff]">{processingCount}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Awaiting processing</p>
+            <p className="text-xs text-[#505060]">
+              {processingCount > 0 ? "Searching carriers..." : "All complete"}
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Quotes */}
-      <Card>
+      <Card className="bg-[#0a0a0f] border-white/10">
         <CardHeader>
-          <CardTitle>Recent Quotes</CardTitle>
-          <CardDescription>Your latest quote requests</CardDescription>
+          <CardTitle className="text-white">Recent Quotes</CardTitle>
+          <CardDescription className="text-[#808090]">Your latest quote requests</CardDescription>
         </CardHeader>
         <CardContent>
           {recentQuotes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="rounded-full bg-muted p-4 mb-4">
+              <div className="rounded-full bg-[#12121a] p-4 mb-4">
                 <svg
-                  className="h-8 w-8 text-muted-foreground"
+                  className="h-8 w-8 text-[#505060]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -118,40 +211,67 @@ export default async function DashboardPage() {
                   />
                 </svg>
               </div>
-              <h3 className="font-semibold">No quotes yet</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                When you request quotes, they will appear here. Get started by
-                requesting your first quote.
+              <h3 className="font-semibold text-white">No quotes yet</h3>
+              <p className="text-sm text-[#808090] max-w-sm mt-1">
+                When you request quotes, they will appear here.
               </p>
+              <Button asChild className="mt-4 bg-electric-gradient shadow-electric">
+                <Link href="/quote">Request Your First Quote</Link>
+              </Button>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Speed</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                <TableRow className="border-white/5 hover:bg-transparent">
+                  <TableHead className="text-[#808090]">Company</TableHead>
+                  <TableHead className="text-[#808090]">Location</TableHead>
+                  <TableHead className="text-[#808090]">Speed</TableHead>
+                  <TableHead className="text-[#808090]">Price</TableHead>
+                  <TableHead className="text-[#808090]">Status</TableHead>
+                  <TableHead className="text-[#808090]">Date</TableHead>
+                  <TableHead className="text-[#808090]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentQuotes.map((quote) => (
-                  <TableRow key={quote.id}>
-                    <TableCell>
-                      <Link
-                        href={`/dashboard/quotes/${quote.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {quote.lead.company}
-                      </Link>
+                  <TableRow
+                    key={quote.id}
+                    className="border-white/5 hover:bg-[#12121a] cursor-pointer"
+                    onClick={() => window.location.href = `/dashboard/quotes/${quote.id}`}
+                  >
+                    <TableCell className="font-medium text-white">
+                      {quote.lead.company}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-[#b0b0c0]">
                       {quote.city}, {quote.state}
                     </TableCell>
-                    <TableCell>{formatSpeed(quote.speed)}</TableCell>
+                    <TableCell className="text-[#b0b0c0]">{formatSpeed(quote.speed)}</TableCell>
+                    <TableCell>
+                      {quote.mrc ? (
+                        <span className="text-[#00ff88] font-medium">
+                          {formatCurrency(quote.mrc)}/mo
+                        </span>
+                      ) : quote.status === "processing" ? (
+                        <span className="text-[#0066ff] text-sm">Searching...</span>
+                      ) : (
+                        <span className="text-[#505060]">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{getStatusBadge(quote.status)}</TableCell>
-                    <TableCell>{formatDate(quote.createdAt)}</TableCell>
+                    <TableCell className="text-[#808090]">{formatDate(quote.createdAt)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-[#0066ff] hover:text-[#0066ff] hover:bg-[#0066ff]/10"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.location.href = `/dashboard/quotes/${quote.id}`
+                        }}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
