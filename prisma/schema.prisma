@@ -41,4 +41,52 @@ model Quote {
   placeId         String?  // Google Places ID for future lookups
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  batchQuotes     BatchQuote[]
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String
+  name          String
+  company       String
+  phone         String?
+  userType      String     // "agent" or "end_user"
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  batchJobs     BatchJob[]
+}
+
+model BatchJob {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  status         String       @default("pending") // pending, processing, complete, failed
+  totalCount     Int
+  processedCount Int          @default(0)
+  successCount   Int          @default(0)
+  failedCount    Int          @default(0)
+  currentIndex   Int          @default(0)
+  fileName       String?
+  notifyEmail    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  quotes         BatchQuote[]
+}
+
+model BatchQuote {
+  id            String    @id @default(cuid())
+  batchJobId    String
+  batchJob      BatchJob  @relation(fields: [batchJobId], references: [id])
+  quoteId       String?
+  quote         Quote?    @relation(fields: [quoteId], references: [id])
+  rowNumber     Int
+  streetAddress String
+  city          String
+  state         String
+  zipCode       String
+  status        String    @default("pending") // pending, processing, complete, failed
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
