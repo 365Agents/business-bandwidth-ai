@@ -5,35 +5,29 @@
 See: .planning/PROJECT.md (updated 2026-01-11)
 
 **Core value:** Capture qualified leads — every quote request becomes a sales opportunity
-**Current focus:** Phase 7 — Bulk Processing
+**Current focus:** Phase 8 — Quote Flow Refinement
 
 ## Current Position
 
-Phase: 7 of 7 (Bulk Processing) - COMPLETE
-Plan: 4 of 4 in current phase (all complete)
-Status: Milestone 1 complete - all phases finished
-Last activity: 2026-01-13 — Completed 07-04-PLAN.md
+Phase: 8 of 11 (Quote Flow Refinement)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-16 — Milestone v1.1 created
 
-Progress: ██████████ 100% (15/15 plans executed)
+Progress: ░░░░░░░░░░ 0% (0/4 phases in v1.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Phases 3-6 executed outside planning docs
-- Phase 7-01 auth complete
+- v1.0 MVP: 15 plans completed across 7 phases
+- v1.1 Platform Expansion: Starting
 
-**By Phase:**
+**By Milestone:**
 
-| Phase | Plans | Status |
-|-------|-------|--------|
-| 1. Foundation | 2/2 | Complete |
-| 2. Lead Capture | 2/2 | Complete |
-| 3. Address Verification | 2/2 | Complete (undocumented) |
-| 4. Momentum API | 3/3 | Complete (undocumented) |
-| 5. Real-time Status | - | Skipped (using polling) |
-| 6. Quote Delivery | 3/3 | Partial (Gmail only, needs Mailgun/currency/upsells) |
-| 7. Bulk Processing | 4/4 | Complete |
+| Milestone | Phases | Status |
+|-----------|--------|--------|
+| v1.0 MVP | 1-7 | Complete (shipped 2026-01-13) |
+| v1.1 Platform Expansion | 8-11 | In progress |
 
 ## Accumulated Context
 
@@ -52,6 +46,7 @@ Recent decisions affecting current work:
 - JWT-based auth with httpOnly cookies
 - Gmail for now, Mailgun for production later
 - CIO for campaign delivery (future)
+- DocuSeal for contract signing (already integrated)
 
 ### Deferred Issues
 
@@ -70,8 +65,13 @@ None yet.
 
 - Prisma v7 has strict typing that requires @ts-expect-error for constructor (minor)
 
+### Roadmap Evolution
+
+- v1.0 MVP created: Core quoting platform, 7 phases (Phase 1-7)
+- v1.1 Platform Expansion created: Quote flow, admin, multi-user, white-label, 4 phases (Phase 8-11)
+
 ## Session Continuity
 
-Last session: 2026-01-13
-Stopped at: Phase 7-01 auth complete, starting 07-02 spreadsheet upload
+Last session: 2026-01-16
+Stopped at: Milestone v1.1 initialization
 Resume file: None

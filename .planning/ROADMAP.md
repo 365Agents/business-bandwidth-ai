@@ -8,7 +8,10 @@ Build a lead-generation-first bandwidth quoting platform. Starting with project 
 
 None
 
-## Current Milestone: v1.0 MVP
+## Milestones
+
+- ✅ **v1.0 MVP** - Phases 1-7 (shipped 2026-01-13)
+- 🚧 **v1.1 Platform Expansion** - Phases 8-11 (in progress)
 
 ## Phases
 
@@ -16,21 +19,13 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [x] **Phase 1: Foundation** - Project setup, Next.js app, database, UI framework
-- [x] **Phase 2: Lead Capture** - Customer info forms, validation, lead storage
-- [ ] **Phase 3: Address Verification** - Google Maps integration, business-only filtering
-- [ ] **Phase 4: Momentum API** - Authentication, quote submission, result polling
-- [ ] **Phase 5: Real-time Status** - WebSocket updates during quote processing
-- [ ] **Phase 6: Quote Delivery** - Email templates, currency converter, upsell mentions
-- [ ] **Phase 7: Bulk Processing** - Spreadsheet upload, queue system, batch progress
-
-## Phase Details
+<details>
+<summary>✅ v1.0 MVP (Phases 1-7) - SHIPPED 2026-01-13</summary>
 
 ### Phase 1: Foundation
 **Goal**: Working Next.js app with database, authentication structure, and base UI components
 **Depends on**: Nothing (first phase)
-**Research**: Unlikely (established patterns)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [x] 01-01: Project scaffolding and database setup
@@ -39,8 +34,7 @@ Plans:
 ### Phase 2: Lead Capture
 **Goal**: Complete lead capture flow - name, email, phone, company collected and stored
 **Depends on**: Phase 1
-**Research**: Unlikely (standard forms and validation)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [x] 02-01: Lead capture form and validation
@@ -49,70 +43,106 @@ Plans:
 ### Phase 3: Address Verification
 **Goal**: Google Maps address autocomplete with business-only filtering
 **Depends on**: Phase 2
-**Research**: Level 1 (Quick Verification - @react-google-maps/api)
-**Plans**: 2
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Google Maps integration and address autocomplete
-- [ ] 03-02: Business address validation and filtering
+- [x] 03-01: Google Maps integration and address autocomplete
+- [x] 03-02: Business address validation and filtering
 
 ### Phase 4: Momentum API
 **Goal**: Complete quote request flow - submit address, poll for results, display pricing
 **Depends on**: Phase 3
-**Research**: Likely (Momentum Cypress API specifics)
-**Research topics**: API authentication flow, quote_request lifecycle, error handling, rate limits
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Momentum API authentication and token management
-- [ ] 04-02: Quote submission and result polling
-- [ ] 04-03: Quote display with MRC/NRC pricing
+- [x] 04-01: Momentum API authentication and token management
+- [x] 04-02: Quote submission and result polling
+- [x] 04-03: Quote display with MRC/NRC pricing
 
 ### Phase 5: Real-time Status
 **Goal**: Live progress updates during 2-3 minute quote processing
 **Depends on**: Phase 4
-**Research**: Likely (WebSocket implementation)
-**Research topics**: Next.js WebSocket patterns, Socket.io vs native WS, progress state management
-**Plans**: TBD
-
-Plans:
-- [ ] 05-01: WebSocket server and client setup
-- [ ] 05-02: Real-time quote status updates and progress UI
+**Status**: Skipped (using polling instead of WebSocket)
 
 ### Phase 6: Quote Delivery
 **Goal**: Professional quote emails with currency conversion and upsell mentions
 **Depends on**: Phase 5
-**Research**: Likely (email service, currency API)
-**Research topics**: Email service (Resend/SendGrid), email templates, exchange rate API
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Email service integration and quote templates
-- [ ] 06-02: Currency converter with daily exchange rates
-- [ ] 06-03: Upsell content (5G, SDWAN mentions)
+- [x] 06-01: Email service integration and quote templates (Gmail)
+- [x] 06-02: Currency converter with daily exchange rates
+- [x] 06-03: Upsell content (5G, SDWAN mentions)
 
 ### Phase 7: Bulk Processing
 **Goal**: Spreadsheet upload with sequential queue processing and batch progress tracking
 **Depends on**: Phase 6
-**Research**: Unlikely (builds on established patterns)
+**Plans**: 4 plans
+
+Plans:
+- [x] 07-01: Auth system (signup, login, JWT cookies)
+- [x] 07-02: Spreadsheet upload and parsing
+- [x] 07-03: Sequential queue processor
+- [x] 07-04: Batch progress tracking
+
+</details>
+
+### 🚧 v1.1 Platform Expansion (In Progress)
+
+**Milestone Goal:** Complete the quote-to-contract flow, add admin capabilities, multi-user authentication, and white-label support for resellers.
+
+#### Phase 8: Quote Flow Refinement
+**Goal**: Remove order buttons, add "Request Contract" button to trigger DocuSeal, enforce quote-first workflow
+**Depends on**: v1.0 complete
+**Research**: Unlikely (DocuSeal already integrated)
 **Plans**: TBD
 
 Plans:
-- [ ] 07-01: Spreadsheet upload and parsing
-- [ ] 07-02: Sequential queue processor
-- [ ] 07-03: Batch progress tracking (live + email notification option)
+- [ ] 08-01: TBD (run /gsd:plan-phase 8 to break down)
+
+#### Phase 9: Admin Dashboard
+**Goal**: Super user panel for quote/lead management and user administration
+**Depends on**: Phase 8
+**Research**: Unlikely (internal CRUD patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: TBD
+
+#### Phase 10: Multi-user Auth
+**Goal**: Google OAuth first, Microsoft OAuth second, multi-tenant user support
+**Depends on**: Phase 9
+**Research**: Likely (NextAuth.js / OAuth integration)
+**Research topics**: NextAuth.js setup, Google OAuth credentials, Microsoft OAuth, multi-tenant patterns
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: TBD
+
+#### Phase 11: White-label
+**Goal**: Branding customization script and embeddable code snippet for reseller clients
+**Depends on**: Phase 10
+**Research**: Unlikely (CSS/JS embedding patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 11-01: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation | 2/2 | Complete | 2026-01-12 |
-| 2. Lead Capture | 2/2 | Complete | 2026-01-12 |
-| 3. Address Verification | 0/2 | Not started | - |
-| 4. Momentum API | 0/3 | Not started | - |
-| 5. Real-time Status | 0/2 | Not started | - |
-| 6. Quote Delivery | 0/3 | Not started | - |
-| 7. Bulk Processing | 0/3 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation | v1.0 | 2/2 | Complete | 2026-01-12 |
+| 2. Lead Capture | v1.0 | 2/2 | Complete | 2026-01-12 |
+| 3. Address Verification | v1.0 | 2/2 | Complete | 2026-01-12 |
+| 4. Momentum API | v1.0 | 3/3 | Complete | 2026-01-12 |
+| 5. Real-time Status | v1.0 | - | Skipped | 2026-01-12 |
+| 6. Quote Delivery | v1.0 | 3/3 | Complete | 2026-01-13 |
+| 7. Bulk Processing | v1.0 | 4/4 | Complete | 2026-01-13 |
+| 8. Quote Flow Refinement | v1.1 | 0/? | Not started | - |
+| 9. Admin Dashboard | v1.1 | 0/? | Not started | - |
+| 10. Multi-user Auth | v1.1 | 0/? | Not started | - |
+| 11. White-label | v1.1 | 0/? | Not started | - |
