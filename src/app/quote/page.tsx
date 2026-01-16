@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,8 @@ import { GoogleAddressAutocomplete, type ParsedAddress, type SearchMode, type Ad
 import { quoteFormSchema, type QuoteFormValues } from "@/lib/validations/quote"
 import { submitQuoteRequest } from "./actions"
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
+
 const speedOptions = [
   { value: "10", label: "10 Mbps", description: "Basic" },
   { value: "20", label: "20 Mbps", description: "Starter" },
@@ -56,6 +59,8 @@ export default function QuotePage() {
   const [isAddressVerified, setIsAddressVerified] = useState(false)
   const [searchMode, setSearchMode] = useState<SearchMode>("address")
   const [currentAddressType, setCurrentAddressType] = useState<AddressType | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileInstance>(null)
 
   // Read all address query params
   const streetFromParams = searchParams.get("street") || ""
@@ -122,9 +127,36 @@ export default function QuotePage() {
   }
 
   async function onSubmit(data: QuoteFormValues) {
+    // Verify Turnstile token if site key is configured
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      toast.error("Please complete the verification", {
+        description: "Click the checkbox to verify you're human.",
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      const result = await submitQuoteRequest(data)
+      // Verify token server-side if we have one
+      if (turnstileToken) {
+        const verifyResponse = await fetch("/api/turnstile/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: turnstileToken }),
+        })
+        const verifyResult = await verifyResponse.json()
+        if (!verifyResult.success) {
+          toast.error("Verification failed", {
+            description: "Please try again.",
+          })
+          turnstileRef.current?.reset()
+          setTurnstileToken(null)
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      const result = await submitQuoteRequest({ ...data, turnstileToken: turnstileToken || undefined })
       if (result.success && result.quoteId) {
         toast.success("Quote request submitted!", {
           description: "Searching 200+ carriers for the best rates...",
@@ -135,6 +167,8 @@ export default function QuotePage() {
         toast.error("Failed to submit", {
           description: result.error || "Please try again.",
         })
+        turnstileRef.current?.reset()
+        setTurnstileToken(null)
         setIsSubmitting(false)
       }
     } catch (error) {
@@ -142,6 +176,8 @@ export default function QuotePage() {
       toast.error("Something went wrong", {
         description: error instanceof Error ? error.message : "Please try again later.",
       })
+      turnstileRef.current?.reset()
+      setTurnstileToken(null)
       setIsSubmitting(false)
     }
   }
@@ -274,6 +310,24 @@ export default function QuotePage() {
                       Business Verified
                     </Badge>
                   )}
+                  {isAddressVerified && currentAddressType === "residential" && (
+                    <Badge variant="secondary" className="text-[#ff4466] bg-[#ff4466]/10 border-[#ff4466]/20">
+                      <svg
+                        className="w-3 h-3 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                      Residential - Not Eligible
+                    </Badge>
+                  )}
                   {isAddressVerified && currentAddressType === "unknown" && (
                     <Badge variant="secondary" className="text-[#ffaa00] bg-[#ffaa00]/10 border-[#ffaa00]/20">
                       <svg
@@ -293,6 +347,35 @@ export default function QuotePage() {
                     </Badge>
                   )}
                 </div>
+
+                {/* Error for residential address - blocks submission */}
+                {currentAddressType === "residential" && (
+                  <Alert className="bg-[#ff4466]/10 border-[#ff4466]/30">
+                    <svg
+                      className="w-4 h-4 text-[#ff4466]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                    <AlertDescription className="text-[#ff4466] ml-2">
+                      <strong>This appears to be a residential address.</strong> Business internet service is only available for commercial locations.
+                      <button
+                        type="button"
+                        onClick={() => setSearchMode("establishment")}
+                        className="ml-2 text-[#0066ff] hover:underline font-medium"
+                      >
+                        Search by business name instead
+                      </button>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Warning for unknown address type */}
                 {currentAddressType === "unknown" && (
@@ -450,13 +533,29 @@ export default function QuotePage() {
                 </div>
               </div>
 
+              {/* Bot Protection */}
+              {TURNSTILE_SITE_KEY && (
+                <div className="flex justify-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={setTurnstileToken}
+                    onError={() => setTurnstileToken(null)}
+                    onExpire={() => setTurnstileToken(null)}
+                    options={{
+                      theme: "dark",
+                    }}
+                  />
+                </div>
+              )}
+
               <Button
                 type="submit"
-                className="w-full bg-electric-gradient shadow-electric hover:shadow-electric-lg transition-all"
+                className="w-full bg-electric-gradient shadow-electric hover:shadow-electric-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 size="lg"
-                disabled={isSubmitting}
+                disabled={isSubmitting || currentAddressType === "residential" || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
               >
-                {isSubmitting ? "Finding Best Rates..." : "Get My Quote"}
+                {isSubmitting ? "Finding Best Rates..." : currentAddressType === "residential" ? "Business Address Required" : "Get My Quote"}
               </Button>
             </form>
           </Form>

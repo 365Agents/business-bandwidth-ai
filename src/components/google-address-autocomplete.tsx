@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 
-export type AddressType = "business" | "unknown"
+export type AddressType = "business" | "residential" | "unknown"
 
 export interface ParsedAddress {
   streetAddress: string
@@ -87,6 +87,12 @@ const BUSINESS_TYPES = [
   "general_contractor",
 ]
 
+// Types that indicate residential addresses
+const RESIDENTIAL_TYPES = [
+  "premise",        // A named location, usually a building (often homes)
+  "subpremise",     // Apartment, suite, etc.
+]
+
 function parseAddressComponents(
   place: google.maps.places.PlaceResult
 ): ParsedAddress {
@@ -121,18 +127,40 @@ function parseAddressComponents(
     ? `${streetNumber} ${route}`
     : route || streetNumber
 
-  // Check if the address is likely residential
-  // An address is likely residential if it has NO business-related types
+  // Check place types for classification
   const hasBusiness = placeTypes.some(type => BUSINESS_TYPES.includes(type))
-  const isLikelyResidential = !hasBusiness
-
-  // Check if this is explicitly an establishment
+  const hasResidential = placeTypes.some(type => RESIDENTIAL_TYPES.includes(type))
   const isEstablishment = placeTypes.includes("establishment")
+  const hasStreetAddress = placeTypes.includes("street_address")
+  const hasRoute = placeTypes.includes("route")
+
+  // Log for debugging
+  console.log("[AddressType] Place types:", placeTypes)
+  console.log("[AddressType] hasBusiness:", hasBusiness, "hasResidential:", hasResidential, "isEstablishment:", isEstablishment)
+
+  // isLikelyResidential is true if:
+  // 1. Has residential types (premise, subpremise) without business types, OR
+  // 2. Has street_address or route type with no business indicators
+  // 3. Has no business types at all (conservative approach)
+  const isLikelyResidential =
+    (hasResidential && !hasBusiness) ||
+    ((hasStreetAddress || hasRoute) && !hasBusiness) ||
+    (!hasBusiness && !isEstablishment && streetAddress.length > 0)
 
   // Determine address type for analytics and display
   // "business" = clearly an establishment
-  // "unknown" = street address that could be residential or commercial
-  const addressType: AddressType = isEstablishment ? "business" : "unknown"
+  // "residential" = likely a home address (blocks form submission)
+  // "unknown" = ambiguous (shows warning but allows submission)
+  let addressType: AddressType
+  if (isEstablishment || hasBusiness) {
+    addressType = "business"
+  } else if (isLikelyResidential) {
+    addressType = "residential"
+  } else {
+    addressType = "unknown"
+  }
+
+  console.log("[AddressType] Final addressType:", addressType)
 
   return {
     streetAddress,
@@ -291,7 +319,10 @@ export function GoogleAddressAutocomplete({
           const parsedAddress = parseAddressComponents(place)
           setInputValue(parsedAddress.formattedAddress)
           setSelectedAddress(parsedAddress)
-          onAddressChange?.(parsedAddress.formattedAddress)
+          // Note: We intentionally DON'T call onAddressChange here because:
+          // 1. onPlaceSelect already provides all the address data
+          // 2. Calling onAddressChange would trigger handleStreetChange which clears addressType
+          // 3. The parent should use onPlaceSelect for full place data including addressType
           onPlaceSelect?.(parsedAddress)
         }
       }
@@ -299,7 +330,7 @@ export function GoogleAddressAutocomplete({
 
     setShowDropdown(false)
     setPredictions([])
-  }, [onAddressChange, onPlaceSelect])
+  }, [onPlaceSelect])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -373,6 +404,13 @@ export function GoogleAddressAutocomplete({
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
                 Business
+              </span>
+            ) : selectedAddress.addressType === "residential" ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff4466]/10 text-[#ff4466] border border-[#ff4466]/20">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Residential
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#ffaa00]/10 text-[#ffaa00] border border-[#ffaa00]/20">

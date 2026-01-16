@@ -31,7 +31,7 @@ model Quote {
   zipCode         String
   speed           String
   term            String
-  status          String   @default("pending") // pending, processing, complete, failed
+  status          String   @default("pending") // pending, processing, complete, failed, accepted
   quoteRequestId  String?  // From Momentum API
   mrc             Float?   // Monthly recurring charge
   nrc             Float?   // Non-recurring charge
@@ -39,9 +39,45 @@ model Quote {
   errorMessage    String?
   addressType     String?  // business, unknown - from Google Places
   placeId         String?  // Google Places ID for future lookups
+  // Add-ons selected by customer
+  addOnSdwan      Boolean  @default(false)  // Juniper SD-WAN $250/mo
+  addOn5g         Boolean  @default(false)  // 5G Backup $250/mo
+  addOnCatoSase   Boolean  @default(false)  // Cato SASE interest (requires consultation)
+
+  // Order tracking (populated when customer proceeds with order)
+  orderNumber     String?
+  orderCreatedAt  DateTime?
+  termsAcceptedAt DateTime?
+
+  // Billing contact (may differ from lead)
+  billingName     String?
+  billingEmail    String?
+  billingPhone    String?
+  billingCompany  String?
+
+  // Technical contact
+  technicalName   String?
+  technicalEmail  String?
+  technicalPhone  String?
+
+  // Sales representative
+  salesRepName    String?
+  salesRepEmail   String?
+
+  // Link to user account (for order tracking)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+
+  // DocuSeal e-signature tracking
+  docusealSubmissionId  String?
+  docusealSignedAt      DateTime?
+  docusealDocumentUrls  String?   // JSON array of signed doc URLs
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   batchQuotes     BatchQuote[]
+
+  @@index([userId])
 }
 
 model User {
@@ -55,6 +91,7 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   batchJobs     BatchJob[]
+  quotes        Quote[]    // Orders placed by this user
 }
 
 model BatchJob {

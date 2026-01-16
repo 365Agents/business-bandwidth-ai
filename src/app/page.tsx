@@ -18,12 +18,12 @@ export default function HomePage() {
 
             {/* Tagline */}
             <p className="font-mono text-sm tracking-[0.25em] uppercase text-[#808090]">
-              Worldwide Internet Quotes
+              The New Way to Buy Internet
             </p>
 
             {/* Subtext */}
             <p className="text-lg text-[#b0b0c0] max-w-xl mx-auto">
-              200+ carriers. One best price for your location.
+              Get business internet at any datacenter or office location worldwide.
             </p>
 
             {/* Address Input */}
@@ -57,10 +57,10 @@ export default function HomePage() {
             </p>
           </div>
           <div className="bg-[#12121a] border border-white/5 rounded-2xl p-8 text-center space-y-4 hover:border-[#0066ff]/30 hover:shadow-[0_0_60px_rgba(0,102,255,0.1)] transition-all">
-            <div className="font-display text-5xl font-bold text-[#00c9a7]">Global</div>
-            <h3 className="font-semibold text-lg">Coverage</h3>
+            <div className="font-display text-5xl font-bold text-[#00c9a7]">125+</div>
+            <h3 className="font-semibold text-lg">Global POPs</h3>
             <p className="text-sm text-[#808090]">
-              Business internet quotes for locations worldwide.
+              Points of presence spanning the globe for true worldwide coverage.
             </p>
           </div>
         </div>

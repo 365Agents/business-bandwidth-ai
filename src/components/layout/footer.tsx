@@ -16,11 +16,33 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-[#00c9a7] hover:underline"
             >
-              Momentum
+              Momentum Telecom
             </a>
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+            <Link
+              href="/privacy"
+              className="text-[#808090] hover:text-white transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-[#303040]">|</span>
+            <Link
+              href="/legal"
+              className="text-[#808090] hover:text-white transition-colors"
+            >
+              Legal
+            </Link>
+            <span className="text-[#303040]">|</span>
+            <Link
+              href="/accessibility"
+              className="text-[#808090] hover:text-white transition-colors"
+            >
+              Accessibility
+            </Link>
+          </div>
           <p className="text-xs text-[#505060]">
-            &copy; {new Date().getFullYear()} NetworkGPT. All rights reserved.
+            &copy; {new Date().getFullYear()} Momentum Telecom, Inc. All rights reserved.
           </p>
         </div>
       </div>

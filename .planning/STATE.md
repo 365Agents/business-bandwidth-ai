@@ -55,9 +55,12 @@ Recent decisions affecting current work:
 
 ### Deferred Issues
 
-- Phase 6: Mailgun integration for production email
-- Phase 6: Currency converter with daily exchange rates
-- Phase 6: Upsell content (5G, SDWAN mentions)
+- Phase 6: Mailgun integration for production email (using Gmail for now)
+
+### Completed (removed from deferred)
+
+- ✓ Currency converter with daily exchange rates (src/lib/currency.ts)
+- ✓ Upsell content in email and quote page (5G, SD-WAN)
 
 ### Pending Todos
 

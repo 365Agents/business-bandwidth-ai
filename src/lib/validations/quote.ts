@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const addressTypeSchema = z.enum(["business", "unknown"])
+export const addressTypeSchema = z.enum(["business", "residential", "unknown"])
 
 export const quoteFormSchema = z.object({
   // Contact info
@@ -19,6 +19,8 @@ export const quoteFormSchema = z.object({
   // Address verification (optional, populated from Google Places)
   addressType: addressTypeSchema.optional(),
   placeId: z.string().optional(),
+  // Bot protection
+  turnstileToken: z.string().optional(),
 })
 
 export type QuoteFormValues = z.infer<typeof quoteFormSchema>

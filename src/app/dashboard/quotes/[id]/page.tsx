@@ -162,6 +162,14 @@ export default function QuoteDetailPage() {
               )}
             </Button>
           )}
+          <Button variant="outline" asChild className="border-[#00ff88]/30 text-[#00ff88] hover:bg-[#00ff88]/10">
+            <Link href={`/dashboard/quotes/${quoteId}/add-location`}>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Location
+            </Link>
+          </Button>
           <Button variant="outline" asChild className="border-white/10">
             <Link href="/dashboard">Back to Dashboard</Link>
           </Button>

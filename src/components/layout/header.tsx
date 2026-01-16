@@ -24,6 +24,12 @@ export function Header() {
           >
             Dashboard
           </Link>
+          <Link
+            href="/login"
+            className="text-sm font-medium text-[#808090] transition-colors hover:text-white"
+          >
+            Sign In
+          </Link>
           <Button asChild className="bg-electric-gradient shadow-electric hover:shadow-electric-lg transition-all hover:-translate-y-0.5">
             <Link href="/quote">Get Quote</Link>
           </Button>

@@ -166,8 +166,14 @@ export async function submitQuoteToMomentum(
  * Check the status of a quote request.
  * Returns all quotes found so far - carriers respond at different times.
  * Keep polling until all carriers have responded (status = COMPLETE on all quotes).
+ *
+ * @param quoteRequestId - The Momentum quote request ID
+ * @param forceProcessing - If true, always return "processing" status (to keep searching)
  */
-export async function checkQuoteStatus(quoteRequestId: string): Promise<MomentumQuoteResult> {
+export async function checkQuoteStatus(
+  quoteRequestId: string,
+  forceProcessing: boolean = false
+): Promise<MomentumQuoteResult> {
   // Get fresh token
   const token = await authenticate()
 
@@ -229,14 +235,18 @@ export async function checkQuoteStatus(quoteRequestId: string): Promise<Momentum
 
   // Determine overall status
   // Consider complete if we have at least one quote and all are marked complete
-  const status = allComplete && hasAnyQuote ? "complete" : "processing"
+  // BUT if forceProcessing is true, keep returning "processing" to continue searching
+  const apiComplete = allComplete && hasAnyQuote
+  const status = forceProcessing ? "processing" : (apiComplete ? "complete" : "processing")
 
   return {
     quoteRequestId: String(data.quote_request_id),
     status,
     quotes,
     bestQuote: quotes.length > 0 ? quotes[0] : undefined,
-  }
+    // Include raw completion state so caller can decide when to truly complete
+    _apiComplete: apiComplete,
+  } as MomentumQuoteResult
 }
 
 // Test authentication - useful for debugging

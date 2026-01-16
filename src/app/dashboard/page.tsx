@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getDashboardData, refreshProcessingQuotes, fetchExchangeRates } from "./actions"
+import { getDashboardData, refreshProcessingQuotes, fetchExchangeRates, sendQuoteEmail, deleteQuote } from "./actions"
 import {
   CURRENCIES,
   CURRENCY_INFO,
@@ -134,6 +134,8 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [rates, setRates] = useState<Record<Currency, number> | null>(null)
   const [quoteCurrencies, setQuoteCurrencies] = useState<Record<string, Currency>>({})
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     const [result, exchangeRates] = await Promise.all([
@@ -188,6 +190,46 @@ export default function DashboardPage() {
       return { amount: quote.mrc, currency: "USD" }
     }
     return { amount: convertCurrency(quote.mrc, currency, rates), currency }
+  }
+
+  async function handleSendEmail(quoteId: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setSendingEmailId(quoteId)
+    try {
+      const result = await sendQuoteEmail(quoteId)
+      if (result.success) {
+        alert(result.isBatch ? "Batch quote email sent!" : "Quote email sent!")
+      } else {
+        alert(result.error || "Failed to send email")
+      }
+    } catch (error) {
+      alert("Failed to send email")
+    } finally {
+      setSendingEmailId(null)
+    }
+  }
+
+  async function handleDelete(quoteId: string, companyName: string, e: React.MouseEvent) {
+    e.stopPropagation()
+
+    if (!confirm(`Are you sure you want to delete the quote for "${companyName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeletingId(quoteId)
+    try {
+      const result = await deleteQuote(quoteId)
+      if (result.success) {
+        // Refresh the data to remove the deleted quote from the list
+        await loadData()
+      } else {
+        alert(result.error || "Failed to delete quote")
+      }
+    } catch (error) {
+      alert("Failed to delete quote")
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (isLoading || !data) {
@@ -356,17 +398,56 @@ export default function DashboardPage() {
                       <TableCell>{getStatusBadge(quote.status)}</TableCell>
                       <TableCell className="text-[#808090]">{formatDate(quote.createdAt)}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-[#0066ff] hover:text-[#0066ff] hover:bg-[#0066ff]/10"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.location.href = `/dashboard/quotes/${quote.id}`
-                          }}
-                        >
-                          View
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#0066ff] hover:text-[#0066ff] hover:bg-[#0066ff]/10"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.location.href = `/dashboard/quotes/${quote.id}`
+                            }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#00d4ff] hover:text-[#00d4ff] hover:bg-[#00d4ff]/10"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.location.href = `/dashboard/quotes/${quote.id}/edit`
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#ff4466] hover:text-[#ff4466] hover:bg-[#ff4466]/10"
+                            onClick={(e) => handleDelete(quote.id, quote.lead.company, e)}
+                            disabled={deletingId === quote.id || quote.status === "accepted"}
+                          >
+                            {deletingId === quote.id ? (
+                              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              "Delete"
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#ff9900] hover:text-[#ff9900] hover:bg-[#ff9900]/10"
+                            onClick={(e) => handleSendEmail(quote.id, e)}
+                            disabled={sendingEmailId === quote.id || (quote.status !== "complete" && !quote.batchQuotes?.length)}
+                          >
+                            {sendingEmailId === quote.id ? (
+                              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              "Email"
+                            )}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )

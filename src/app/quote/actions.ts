@@ -97,9 +97,13 @@ export async function submitQuoteRequest(data: QuoteFormValues) {
   }
 }
 
+// Minimum time to keep searching even if API says complete (3 minutes)
+const MIN_SEARCH_TIME_MS = 3 * 60 * 1000
+
 /**
  * Check and update the status of a quote from Momentum.
  * Returns all carrier quotes found so far.
+ * Keeps searching for at least MIN_SEARCH_TIME before completing.
  * Sends email notification when quote completes.
  */
 export async function refreshQuoteStatus(quoteId: string): Promise<MomentumQuoteResult | null> {
@@ -130,26 +134,35 @@ export async function refreshQuoteStatus(quoteId: string): Promise<MomentumQuote
       }
     }
 
+    // Calculate how long we've been searching
+    const elapsedMs = Date.now() - quote.createdAt.getTime()
+    const minTimeElapsed = elapsedMs >= MIN_SEARCH_TIME_MS
+
     // Check status from Momentum
-    const statusResult = await checkQuoteStatus(quote.quoteRequestId)
+    // Force processing state if minimum time hasn't elapsed yet
+    const statusResult = await checkQuoteStatus(quote.quoteRequestId, !minTimeElapsed)
+
+    // Determine if we should actually complete
+    // Only complete if: API says complete AND minimum search time has passed
+    const shouldComplete = statusResult.status === "complete" && minTimeElapsed
 
     // Update our database with the best quote if we have results
     if (statusResult.bestQuote) {
       const wasProcessing = quote.status === "processing"
-      const nowComplete = statusResult.status === "complete"
 
       await db.quote.update({
         where: { id: quoteId },
         data: {
-          status: statusResult.status,
+          // Only set status to complete if minimum time has passed
+          status: shouldComplete ? "complete" : "processing",
           mrc: statusResult.bestQuote.mrc,
           nrc: statusResult.bestQuote.nrc,
           carrierName: statusResult.bestQuote.carrierName || null,
         },
       })
 
-      // Send email when quote first completes
-      if (wasProcessing && nowComplete && quote.lead) {
+      // Send email when quote first completes (after minimum wait time)
+      if (wasProcessing && shouldComplete && quote.lead) {
         sendQuoteReadyEmail({
           to: quote.lead.email,
           customerName: quote.lead.name,
@@ -165,19 +178,23 @@ export async function refreshQuoteStatus(quoteId: string): Promise<MomentumQuote
           carrierName: statusResult.bestQuote.carrierName,
         }).catch(console.error) // Don't block on email
       }
-    } else if (statusResult.status === "complete") {
-      // Mark as complete even without quotes
+    } else if (shouldComplete) {
+      // Mark as complete even without quotes (only after min time)
       await db.quote.update({
         where: { id: quoteId },
         data: { status: "complete" },
       })
     }
 
-    if (statusResult.status === "complete") {
+    if (shouldComplete) {
       revalidatePath("/dashboard")
     }
 
-    return statusResult
+    // Return status adjusted for minimum wait time
+    return {
+      ...statusResult,
+      status: shouldComplete ? "complete" : "processing",
+    }
   } catch (error) {
     console.error("Failed to refresh quote status:", error)
     return null

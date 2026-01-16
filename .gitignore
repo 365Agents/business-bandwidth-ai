@@ -57,3 +57,4 @@ nul
 
 # claude planning
 .planning/agent-history.json
+.claude/

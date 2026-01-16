@@ -6,11 +6,28 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Globe } from "@/components/ui/globe"
 import { getQuoteById, refreshQuoteStatus } from "../actions"
+import { OrderWizardDialog } from "@/components/order-wizard/order-wizard-dialog"
 import type { MomentumCarrierQuote } from "@/lib/momentum-api"
 
 const POLL_INTERVAL = 30000 // 30 seconds
+const MIN_SEARCH_TIME = 3 * 60 * 1000 // 3 minutes minimum search
 const MAX_POLL_TIME = 5 * 60 * 1000 // 5 minutes max
+
+// Major last-mile carriers we query
+const CARRIER_NAMES = [
+  "AT&T", "Verizon", "Lumen", "Comcast Business", "Spectrum Enterprise",
+  "Cox Business", "Frontier", "Windstream", "Zayo", "Crown Castle",
+  "Cogent", "GTT", "Consolidated Communications", "TDS Telecom", "Cincinnati Bell",
+  "Atlantic Broadband", "Altice Business", "Google Fiber", "Sonic", "Wave Business",
+  "Astound Business", "Breezeline", "Mediacom Business", "Midco", "WOW! Business",
+  "EPB Fiber", "OTELCO", "Shentel", "TeleCom", "Vexus Fiber",
+  "Lumos Networks", "Segra", "FirstLight", "NTT", "Telia Carrier",
+  "euNetworks", "Colt Technology", "DE-CIX", "PCCW Global", "Telstra",
+  "Orange Business", "BT Wholesale", "Arelion", "Liberty Latin America", "Telefonica",
+  "China Telecom Americas", "KDDI America", "SingTel", "PLDT", "Ooredoo",
+]
 
 export default function QuoteStatusPage() {
   const params = useParams()
@@ -24,6 +41,17 @@ export default function QuoteStatusPage() {
   const [startTime] = useState(Date.now())
   const [timeElapsed, setTimeElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [currentCarrierIndex, setCurrentCarrierIndex] = useState(0)
+
+  // Add-on selections
+  const [addOns, setAddOns] = useState({
+    juniperSdwan: false,
+    fiveGBackup: false,
+    catoSase: false, // Interest only - requires consultation
+  })
+
+  // Order wizard state
+  const [showOrderWizard, setShowOrderWizard] = useState(false)
 
   // Load initial quote data
   useEffect(() => {
@@ -64,6 +92,17 @@ export default function QuoteStatusPage() {
 
     return () => clearInterval(interval)
   }, [status, startTime])
+
+  // Cycle through carrier names while processing
+  useEffect(() => {
+    if (status !== "processing") return
+
+    const interval = setInterval(() => {
+      setCurrentCarrierIndex(prev => (prev + 1) % CARRIER_NAMES.length)
+    }, 400) // Fast cycling through carriers
+
+    return () => clearInterval(interval)
+  }, [status])
 
   // Polling logic
   const pollForUpdates = useCallback(async () => {
@@ -127,6 +166,23 @@ export default function QuoteStatusPage() {
 
   // Get best quote (lowest MRC)
   const bestQuote = quotes.length > 0 ? quotes[0] : null
+
+  // Calculate add-on costs
+  const addOnPrices = {
+    juniperSdwan: 250,
+    fiveGBackup: 250,
+    catoSase: 0, // Requires consultation
+  }
+
+  const totalAddOns = (addOns.juniperSdwan ? addOnPrices.juniperSdwan : 0) +
+    (addOns.fiveGBackup ? addOnPrices.fiveGBackup : 0)
+
+  const totalMrc = (bestQuote?.mrc || 0) + totalAddOns
+
+  // Handle proceed with order - opens the wizard
+  const handleProceed = () => {
+    setShowOrderWizard(true)
+  }
 
   if (status === "loading") {
     return (
@@ -197,40 +253,110 @@ export default function QuoteStatusPage() {
           {/* Progress Indicator - Always show while processing */}
           {status === "processing" && (
             <div className="space-y-4">
-              {/* Main status */}
-              <div className="flex items-center gap-3">
+              {/* Globe visualization - 200 POPs querying carriers */}
+              <div className="flex flex-col items-center">
                 <div className="relative">
-                  <div className="w-10 h-10 border-4 border-[#0066ff]/30 rounded-full" />
-                  <div className="absolute inset-0 w-10 h-10 border-4 border-[#0066ff] border-t-transparent rounded-full animate-spin" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">
-                    {quotes.length === 0
-                      ? "Querying 200+ carriers..."
-                      : "Still searching for better prices..."}
-                  </p>
-                  <p className="text-sm text-[#808090]">
-                    Check #{pollCount + 1} • Updates every 30 seconds • ~{Math.max(0, Math.ceil((MAX_POLL_TIME - timeElapsed) / 60000))} min remaining
-                  </p>
+                  <Globe
+                    config={{
+                      width: 240,
+                      height: 240,
+                      devicePixelRatio: 2,
+                      dark: 1,
+                      diffuse: 0.4,
+                      mapSamples: 16000,
+                      mapBrightness: 1.2,
+                      baseColor: [0.3, 0.3, 0.3],
+                      markerColor: [0.1, 0.8, 1],
+                      glowColor: [0, 0.4, 1],
+                    }}
+                  />
+                  {/* Glow effect behind globe */}
+                  <div className="absolute inset-0 bg-[#0066ff]/10 blur-3xl rounded-full -z-10" />
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="w-full bg-[#1a1a28] rounded-full h-2 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] transition-all duration-1000"
-                  style={{ width: `${Math.min(100, (timeElapsed / MAX_POLL_TIME) * 100)}%` }}
-                />
-              </div>
-
-              {/* How it works explanation */}
-              <div className="bg-[#12121a] rounded-xl p-4 border border-white/5">
-                <p className="text-sm text-[#b0b0c0]">
-                  <span className="text-[#0066ff] font-medium">How this works:</span> We&apos;re checking rates from over 200 carriers for your location.
-                  {quotes.length > 0
-                    ? ` We found ${quotes.length} price${quotes.length > 1 ? 's' : ''} so far, but more carriers are still responding. The price may go down as we find better rates. We'll keep searching for up to 5 minutes.`
-                    : " As carriers respond, prices will appear below. You may see multiple prices as different carriers respond at different speeds. The best price will be highlighted."}
+              {/* Carrier ticker - scrolling through carriers being queried */}
+              <div className="text-center space-y-1">
+                <p className="text-xs text-[#808090] uppercase tracking-wider">Now Checking</p>
+                <div className="h-8 flex items-center justify-center overflow-hidden">
+                  <p className="text-lg font-semibold text-[#00d4ff] transition-opacity duration-200">
+                    {CARRIER_NAMES[currentCarrierIndex]}
+                  </p>
+                </div>
+                <p className="text-sm text-[#606070]">
+                  and {CARRIER_NAMES.length - 1}+ other carriers
                 </p>
+              </div>
+
+              {/* Progress bar - two phases */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-[#808090]">
+                  <span>
+                    {timeElapsed < MIN_SEARCH_TIME
+                      ? "Gathering carrier bids..."
+                      : "Waiting for final responses..."}
+                  </span>
+                  <span>~{Math.max(1, Math.ceil((MAX_POLL_TIME - timeElapsed) / 60000))} min remaining</span>
+                </div>
+                <div className="w-full bg-[#1a1a28] rounded-full h-3 overflow-hidden relative">
+                  {/* Minimum search marker at 60% (3 out of 5 min) */}
+                  <div className="absolute left-[60%] top-0 bottom-0 w-0.5 bg-[#404050] z-10" />
+                  <div
+                    className={`h-full transition-all duration-1000 ${
+                      timeElapsed < MIN_SEARCH_TIME
+                        ? "bg-gradient-to-r from-[#0066ff] to-[#00d4ff]"
+                        : "bg-gradient-to-r from-[#0066ff] via-[#00d4ff] to-[#00ff88]"
+                    }`}
+                    style={{ width: `${Math.min(100, (timeElapsed / MAX_POLL_TIME) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-[#505060]">
+                  <span>Start</span>
+                  <span className="text-[#00d4ff]">3 min (best prices)</span>
+                  <span>5 min</span>
+                </div>
+              </div>
+
+              {/* How it works - key messaging */}
+              <div className="bg-gradient-to-r from-[#0066ff]/10 to-[#00d4ff]/10 rounded-xl p-4 border border-[#0066ff]/20">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 bg-[#0066ff]/20 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#00d4ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-white">
+                      {timeElapsed < MIN_SEARCH_TIME
+                        ? `Searching for at least ${Math.ceil((MIN_SEARCH_TIME - timeElapsed) / 60000)} more minutes...`
+                        : "Finalizing best prices..."}
+                    </p>
+                    <p className="text-sm text-[#b0b0c0]">
+                      We&apos;re querying <span className="text-[#00d4ff] font-medium">200+ carriers</span> in real-time.
+                      {timeElapsed < MIN_SEARCH_TIME ? (
+                        <> Prices often <span className="text-[#00ff88] font-medium">drop 20-40%</span> as slower carriers respond with competitive bids. We&apos;ll keep searching to find you the lowest rate.</>
+                      ) : (
+                        <> Most carriers have responded. We&apos;re waiting for any final quotes that may lower your price.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live status */}
+              <div className="flex items-center justify-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#00ff88] rounded-full" />
+                  <span className="text-[#808090]">Check #{pollCount + 1}</span>
+                </div>
+                <span className="text-[#404050]">•</span>
+                <span className="text-[#808090]">Updates every 30 sec</span>
+                {quotes.length > 0 && (
+                  <>
+                    <span className="text-[#404050]">•</span>
+                    <span className="text-[#00ff88]">{quotes.length} price{quotes.length > 1 ? 's' : ''} found</span>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -248,9 +374,16 @@ export default function QuoteStatusPage() {
           {/* Quotes List */}
           {quotes.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-[#808090] uppercase tracking-wider">
-                Prices Found ({quotes.length})
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-[#808090] uppercase tracking-wider">
+                  Prices Found ({quotes.length})
+                </h3>
+                {status === "processing" && (
+                  <span className="text-xs text-[#00ff88]">
+                    Price may still drop ↓
+                  </span>
+                )}
+              </div>
 
               {quotes.map((q, index) => (
                 <div
@@ -292,16 +425,16 @@ export default function QuoteStatusPage() {
             </div>
           )}
 
-          {/* No quotes yet */}
+          {/* No quotes yet - waiting indicator */}
           {quotes.length === 0 && status === "processing" && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-[#0066ff]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#0066ff] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            <div className="bg-[#12121a] rounded-xl p-4 border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 border-2 border-[#0066ff]/30 border-t-[#0066ff] rounded-full animate-spin" />
+                <div>
+                  <p className="font-medium">Waiting for first carrier response...</p>
+                  <p className="text-sm text-[#808090]">First results typically appear within 30-60 seconds</p>
+                </div>
               </div>
-              <p className="text-[#808090]">Waiting for carrier responses...</p>
-              <p className="text-sm text-[#505060] mt-1">First results typically appear within 30-60 seconds</p>
             </div>
           )}
         </CardContent>
@@ -336,20 +469,230 @@ export default function QuoteStatusPage() {
         </Card>
       )}
 
+      {/* Upsell Opportunities - Show when quote is complete */}
+      {status === "complete" && (
+        <Card className="bg-[#0a0a0f] border-white/10">
+          <CardHeader>
+            <CardTitle className="text-lg">Enhance Your Network</CardTitle>
+            <p className="text-sm text-[#808090]">Select add-ons to include in your order</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Juniper SDWAN */}
+            <label
+              className={`block rounded-xl p-4 border cursor-pointer transition-all ${
+                addOns.juniperSdwan
+                  ? "border-[#00d4ff] bg-[#00d4ff]/5"
+                  : "border-white/5 bg-[#12121a] hover:border-[#00d4ff]/30"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="pt-1">
+                  <input
+                    type="checkbox"
+                    checked={addOns.juniperSdwan}
+                    onChange={(e) => setAddOns({ ...addOns, juniperSdwan: e.target.checked })}
+                    className="w-5 h-5 rounded border-white/20 bg-[#0a0a0f] text-[#00d4ff] focus:ring-[#00d4ff] focus:ring-offset-0"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-semibold">Juniper SD-WAN</span>
+                    <Badge className="bg-[#00d4ff]/10 text-[#00d4ff] border-[#00d4ff]/20">Popular</Badge>
+                  </div>
+                  <p className="text-sm text-[#808090] mb-2">
+                    Intelligent routing with Mist AI management included. Optimize traffic across multiple links automatically.
+                  </p>
+                  <p className="text-[#00ff88] font-semibold">+$250<span className="text-[#808090] font-normal">/mo</span></p>
+                </div>
+              </div>
+            </label>
+
+            {/* 5G Internet */}
+            <label
+              className={`block rounded-xl p-4 border cursor-pointer transition-all ${
+                addOns.fiveGBackup
+                  ? "border-[#00d4ff] bg-[#00d4ff]/5"
+                  : "border-white/5 bg-[#12121a] hover:border-[#00d4ff]/30"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="pt-1">
+                  <input
+                    type="checkbox"
+                    checked={addOns.fiveGBackup}
+                    onChange={(e) => setAddOns({ ...addOns, fiveGBackup: e.target.checked })}
+                    className="w-5 h-5 rounded border-white/20 bg-[#0a0a0f] text-[#00d4ff] focus:ring-[#00d4ff] focus:ring-offset-0"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-semibold">5G Internet Backup</span>
+                    <Badge className="bg-[#ff9900]/10 text-[#ff9900] border-[#ff9900]/20">US Only</Badge>
+                  </div>
+                  <p className="text-sm text-[#808090] mb-2">
+                    Automatic failover to 5G when your primary connection goes down. Stay connected no matter what.
+                  </p>
+                  <p className="text-[#00ff88] font-semibold">+$250<span className="text-[#808090] font-normal">/mo</span></p>
+                </div>
+              </div>
+            </label>
+
+            {/* Cato SASE */}
+            <label
+              className={`block rounded-xl p-4 border cursor-pointer transition-all ${
+                addOns.catoSase
+                  ? "border-[#0066ff] bg-[#0066ff]/5"
+                  : "border-white/5 bg-[#12121a] hover:border-[#0066ff]/30"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="pt-1">
+                  <input
+                    type="checkbox"
+                    checked={addOns.catoSase}
+                    onChange={(e) => setAddOns({ ...addOns, catoSase: e.target.checked })}
+                    className="w-5 h-5 rounded border-white/20 bg-[#0a0a0f] text-[#0066ff] focus:ring-[#0066ff] focus:ring-offset-0"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-semibold">Cato SASE</span>
+                    <Badge className="bg-[#0066ff]/10 text-[#0066ff] border-[#0066ff]/20">Enterprise</Badge>
+                  </div>
+                  <p className="text-sm text-[#808090] mb-2">
+                    Secure Access Service Edge - combine networking and security in the cloud. Per-user pricing available.
+                  </p>
+                  <p className="text-[#808090] text-sm">
+                    <span className="text-[#0066ff]">Requires consultation</span> — we&apos;ll discuss pricing on our call
+                  </p>
+                </div>
+              </div>
+            </label>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Order Summary - Show when add-ons selected or quote complete */}
+      {status === "complete" && bestQuote && (
+        <Card className="bg-[#0a0a0f] border-[#0066ff]/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Order Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Base quote */}
+            <div className="flex justify-between text-sm">
+              <span className="text-[#808090]">Dedicated Internet ({quote?.speed} Mbps)</span>
+              <span>{formatCurrency(bestQuote.mrc)}/mo</span>
+            </div>
+
+            {/* Selected add-ons */}
+            {addOns.juniperSdwan && (
+              <div className="flex justify-between text-sm">
+                <span className="text-[#808090]">Juniper SD-WAN</span>
+                <span>+{formatCurrency(addOnPrices.juniperSdwan)}/mo</span>
+              </div>
+            )}
+            {addOns.fiveGBackup && (
+              <div className="flex justify-between text-sm">
+                <span className="text-[#808090]">5G Internet Backup</span>
+                <span>+{formatCurrency(addOnPrices.fiveGBackup)}/mo</span>
+              </div>
+            )}
+            {addOns.catoSase && (
+              <div className="flex justify-between text-sm">
+                <span className="text-[#808090]">Cato SASE</span>
+                <span className="text-[#0066ff]">TBD</span>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="border-t border-white/10 pt-3">
+              <div className="flex justify-between">
+                <span className="font-semibold">Total Monthly</span>
+                <span className="font-display text-xl font-bold text-[#0066ff]">
+                  {formatCurrency(totalMrc)}/mo
+                  {addOns.catoSase && <span className="text-sm font-normal text-[#808090]"> + Cato</span>}
+                </span>
+              </div>
+              {bestQuote.nrc > 0 && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-[#808090]">One-time setup</span>
+                  <span className="text-[#808090]">{formatCurrency(bestQuote.nrc)}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Already Accepted Message */}
+      {quote?.status === "accepted" && (
+        <Card className="bg-[#00ff88]/10 border-[#00ff88]/30">
+          <CardContent className="pt-6 text-center">
+            <div className="w-12 h-12 bg-[#00ff88]/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-[#00ff88] mb-1">Order Confirmed</h3>
+            <p className="text-sm text-[#808090]">
+              You&apos;ve already accepted this quote. Our team will be in touch shortly.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Actions */}
-      <div className="flex gap-4 justify-center">
-        {status === "complete" && bestQuote && (
-          <Button className="bg-electric-gradient shadow-electric hover:shadow-electric-lg">
-            Proceed with Quote
+      <div className="flex flex-col gap-4 items-center">
+        {status === "complete" && bestQuote && quote?.status !== "accepted" && (
+          <Button
+            className="bg-electric-gradient shadow-electric hover:shadow-electric-lg w-full max-w-md"
+            size="lg"
+            onClick={handleProceed}
+          >
+            {addOns.catoSase ? (
+              <>Schedule Consultation &amp; Proceed</>
+            ) : (
+              <>Proceed with Order — {formatCurrency(totalMrc)}/mo</>
+            )}
           </Button>
         )}
-        <Button variant="outline" asChild>
-          <Link href="/quote">Request New Quote</Link>
-        </Button>
-        <Button variant="ghost" asChild>
-          <Link href="/dashboard">View Dashboard</Link>
-        </Button>
+        <div className="flex gap-4">
+          <Button variant="outline" asChild>
+            <Link href="/quote">Request New Quote</Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/dashboard">View Dashboard</Link>
+          </Button>
+        </div>
       </div>
+
+      {/* Order Wizard Dialog */}
+      {quote && bestQuote && (
+        <OrderWizardDialog
+          open={showOrderWizard}
+          onOpenChange={setShowOrderWizard}
+          quoteId={quoteId}
+          quoteData={{
+            leadName: quote.lead?.name || "",
+            leadEmail: quote.lead?.email || "",
+            leadPhone: quote.lead?.phone || "",
+            leadCompany: quote.lead?.company || "",
+            streetAddress: quote.streetAddress,
+            city: quote.city,
+            state: quote.state,
+            zipCode: quote.zipCode,
+            speed: quote.speed,
+            term: quote.term,
+            mrc: bestQuote.mrc,
+            nrc: bestQuote.nrc || 0,
+            carrierName: bestQuote.carrierName || null,
+            addOnSdwan: addOns.juniperSdwan,
+            addOn5g: addOns.fiveGBackup,
+            addOnCatoSase: addOns.catoSase,
+          }}
+        />
+      )}
     </div>
   )
 }
